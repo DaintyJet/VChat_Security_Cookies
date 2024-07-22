@@ -1,0 +1,3 @@
+﻿  main.c
+D:\Fu-Work\VChat\WinExploit-Priv\7-OtherMitgations\BufferSecurityCheck\SRC\Buffer-Check-Standalone\Buffer-Check-Standalone\main.c(18,9): warning C4101: 'check': unreferenced local variable
+  Buffer-Check-Standalone.vcxproj -> D:\Fu-Work\VChat\WinExploit-Priv\7-OtherMitgations\BufferSecurityCheck\SRC\Buffer-Check-Standalone\Debug\Buffer-Check-Standalone.exe

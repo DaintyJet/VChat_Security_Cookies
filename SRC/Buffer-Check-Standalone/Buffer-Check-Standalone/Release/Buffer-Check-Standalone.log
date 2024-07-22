@@ -1,0 +1,6 @@
+﻿  main.c
+D:\Fu-Work\VChat\WinExploit-Priv\7-OtherMitgations\BufferSecurityCheck\SRC\Buffer-Check-Standalone\Buffer-Check-Standalone\main.c(24,9): warning C4101: 'check': unreferenced local variable
+  Generating code
+  Not all modules are compiled with -Gy (function comdat), build without incremental LTCG.
+  Finished generating code
+  Buffer-Check-Standalone.vcxproj -> D:\Fu-Work\VChat\WinExploit-Priv\7-OtherMitgations\BufferSecurityCheck\SRC\Buffer-Check-Standalone\Release\Buffer-Check-Standalone.exe
