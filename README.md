@@ -1,4 +1,7 @@
 # Buffer Security Checks
+>[!NOTE]
+> Originally based off notes from [llan-OuO](https://github.com/llan-OuO).
+---
 Buffer security checks are implemented on most systems and are one of the oldest mitigation techniques being introduced in the Visual Studio 2002 C++ Compiler and is used to prevent buffer overflows. The Windows impletion of this, protects against overflows of objects located on the *stack*. This is done by allocation something known as a *security cookie* which as also commonly called a *stack canary* onto the stack in a location that would need to be overwritten by the overflow in order to modify the critical sections of data on the stack. Then when the program attempts to access a protected value on the stack, be that an argument or return address it will first check to see if the *security cookie* has been changed and if so, we know an overflow likely occurred. This is why the *security cookie* is often referred to as a *stack canary* due to the use of [canaries in mineshaft](https://review.gale.com/2020/09/08/canaries-in-the-coal-mine/) to detect dangerous situations.
 
 > [!NOTE]
