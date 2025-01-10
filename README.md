@@ -16,7 +16,7 @@ A security cookie will be inserted and checked when any one of the the following
   * *Does not* contain pointer type objects.
   * *Consists of* more than two elements.
 * A data structure that is 8-bytes or larger is allocated.
-  * *Does not* contain pointer type objects
+  * *Does not* contain pointer type objects.
 * A buffer is allocated using the [`_alloca(...)`](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/alloca?view=msvc-170) function.
 * A structure is allocated that contains a variable or structure that meets one of the previously mentioned conditions.
 
@@ -36,12 +36,12 @@ int buffer[20];
 // Structure > 8 Bytes (16 + padding)
 struct { int a; int b; int c; int d; } myStruct;
 
-// Structure containing a buffer > 4 Bytes (20 Bytes) & 
+// Structure containing a buffer > 4 Bytes (20 Bytes) &
 // contains > 2 elements (20) that are not pointers
 struct { int a; char buf[20]; };
 ```
 
-In [1] They also provide an example to show what *are not* *GS Buffer* allocations: 
+In [1] They also provide an example to show what *are not* *GS Buffer* allocations:
 ```c
 // Array > 4-Bytes (80-bytes on x86, 160-bytes on x86-64)
 // However, this is an array of pointers!
@@ -77,7 +77,7 @@ Depending on the compiler options and function characteristics additional reloca
 * Function **does not** contain a variable argument list `...`.
 * Function is **not** marked with the [`naked`](https://learn.microsoft.com/en-us/cpp/cpp/naked-cpp?view=msvc-170) attribute. If marked with `naked` the function will not contain prolog and epilog code.
 * Function does not contain *inline assembly* as part of the **first** statement.
-* Parameters **are used** in ways that may be exploitable in the event of a buffer overflow. 
+* Parameters **are used** in ways that may be exploitable in the event of a buffer overflow.
 
 
 If those conditions are met, we can have a stack that looks like the following:
@@ -85,12 +85,12 @@ If those conditions are met, we can have a stack that looks like the following:
 <img src="Images/Additional-SC-Alloc.png">
 
 ## Security Cookie/Canary Types
-When it comes to what a *security cookie* or *stack canary* is the answer at first seems relatively simple. They are a *value* placed on the stack when the function is called, and this *value* is then checked when accessing critical data. However, the most important question still remains! What is the value placed on the stack? 
+When it comes to what a *security cookie* or *stack canary* is the answer to the question of what they are at first seems relatively simple. They are a *value* placed on the stack when the function is called, and this *value* is then checked when accessing critical data. However, the most important question still remains! What is the value placed on the stack?
 
 There are a few classes of stack canaries and in modern implementations they may be a mixture of characteristics associated with these classes.
 
 ### Terminator Canaries
-As most overflows leverage unsafe string operations like `scanf(...)`, `gets(...)`, `strcpy(...)`, `sprintf(...)`, etc. This canary leverages the fact that certain characters act as terminators, signifying the end of a C style string. Examples of terminating characters include the *null-terminator* `'\0'` with the value of `0x00` or depending on the operation used the *newline (Line Feed)* character `'\n'` with the value of `0x0A`. Filing a series of 4-bytes in a 32-bit system or 8-bytes in a 64-bit system with a terminating character makes it difficult for an attacker to overflow past the *security cookie*/*canary* using unsafe string operations without changing the canaries's value as the string would be terminated before reaching the target of the overflow. If the attacker did use an unsafe string operation to overflow past the canary, then it's value would have been changed and the overflow detected. 
+As most overflows leverage unsafe string operations like `scanf(...)`, `gets(...)`, `strcpy(...)`, `sprintf(...)`, etc. This canary leverages the fact that certain characters act as terminators, signifying the end of a C style string. Examples of terminating characters include the *null-terminator* `'\0'` with the value of `0x00` or depending on the operation used the *newline (Line Feed)* character `'\n'` with the value of `0x0A`. Filing a series of 4-bytes in a 32-bit system or 8-bytes in a 64-bit system with a terminating character makes it difficult for an attacker to overflow past the *security cookie*/*canary* using unsafe string operations without changing the canaries's value as the string would be terminated before reaching the target of the overflow. If the attacker did use an unsafe string operation to overflow past the canary, then it's value would have been changed and the overflow detected.
 
 Below are a series of images that attempt to showcase how a *terminator canary* would work:
 
@@ -110,7 +110,7 @@ Below are a series of images that attempt to showcase how a *terminator canary* 
 
 
 ### Random Canaries
-As various functions like `memcpy(...)`, `read(...)`, `bcopy(...)`, `recv(...)`, etc exist. Which copy, read, or receive streams of *bytes* and store them at a location the programmer specified regardless of what those bytes are the *terminator canaries* are not particularly effective. This means unlike the function that operate on string discussed in the previous section, characters that serve as *terminators* can be sent to the program and written to memeory when these functions are used. This means if a program used *terminator canaries* which would be a **constant and known** value an attacker would be able to bypass them if one of these functions were used. As the attacker can find the location of the canary and simply overwrite it with the *terminator* characters that had been there previously before continuing on to overwrite the critical data. 
+As various functions like `memcpy(...)`, `read(...)`, `bcopy(...)`, `recv(...)`, etc exist. Which copy, read, or receive streams of *bytes* and store them at a location the programmer specified regardless of what those bytes are the *terminator canaries* are not particularly effective. This means unlike the function that operate on string discussed in the previous section, characters that serve as *terminators* can be sent to the program and written to memeory when these functions are used. This means if a program used *terminator canaries* which would be a **constant and known** value an attacker would be able to bypass them if one of these functions were used. As the attacker can find the location of the canary and simply overwrite it with the *terminator* characters that had been there previously before continuing on to overwrite the critical data.
 
 In order to prevent the canary from being defeated so easily by being a **constant and known** value when these functions are the root of the overflow, an alternative kind of canary consisting of a random string of 4-bytes in a 32-bit system or 8-bytes in a 64-bit system. This way, when the function is called a random unknown *security cookie*/*canary* is inserted onto the stack which the attacker does not know. So in order for an attacker to exploit a buffer overflow vulnerability when *random canaries* are used the attacker would need to leak the canary without crashing the program, or get the same canary multiple times in a row allowing them to guess the canary.
 
@@ -147,7 +147,7 @@ Now we can examine how a random canary would help prevent this:
 > [!NOTE]
 > This constant changing between crashes make it harder to brute force the stack canary. If we are on a 32-bit system it is possible. However on a 64-bit system this becomes more unreasonable with our current systems today.
 ### XOR Canaries
-Depending on the behavior of a program it is still possible to defeat *random canaries*, as mentioned previously we can still leak information from the programs stack. In that case knowing the random canary you can overwrite it with the original values to remain undetected. Additionally as discussed in [5] if a program were to have behavior similar to a Linux `fork(...)` where the executing process is copied and inherits the security cookies and seed values without re-randomization you could guess the *random canary* one byte at a time until the server stops crashing; then you know the canary has been successfully guessed. 
+Depending on the behavior of a program it is still possible to defeat *random canaries*, as mentioned previously we can still leak information from the programs stack. In that case knowing the random canary you can overwrite it with the original values to remain undetected. Additionally as discussed in [5] if a program were to have behavior similar to a Linux `fork(...)` where the executing process is copied and inherits the security cookies and seed values without re-randomization you could guess the *random canary* one byte at a time until the server stops crashing; then you know the canary has been successfully guessed.
 
 > [!NOTE]
 > As Windows **does not** have a function like `fork(...)` and re-randomizes each sub-process created we do not have to worry that much about the attack discussed in [5] however it is something to keep in mind.
@@ -182,7 +182,7 @@ Rather than using the same security cookie for each function which could be leak
 **Brute Force**: Specifically on 32-bit systems it is possible for an attacker to brute force the security cookie's value especially if one of the bits is replaced with a null terminator like `\0` as this reduces the number of randomized bytes to 3 so rather than having `2^32` or `4,294,967,296` possibilities we would have `2^24` or `16,777,216`. If this were on a *Linux* system and the program used the `fork()` system call then it would be possible for an attacker depending on the behavior of the program to brute force the canary bytes individually reducing the amount of work required on average. On 64-bit systems this concern is mostly reduced due to the increased entropy of `2^64` possibilities if we are not including one terminating character and `2^56` if we are.
 
 ## Enabling Security Cookies
-Security cookies are a per-process protection that is enabled at compile time where the additional code required for these checks is inserted into the function prologs and epilogs [1][2]. Additionally the entrypoint of the program needs to call the `__security_init_cookie` if the Windows loader has not, otherwise the security cookie will be the default value set by the compiler [2]. If the `__security_init_cookie` function is not called there is still some entropy due to the XOR with the base pointer, however this is not optimal as most of the entropy is lost. 
+Security cookies are a per-process protection that is enabled at compile time where the additional code required for these checks is inserted into the function prologs and epilogs [1][2]. Additionally the entrypoint of the program needs to call the `__security_init_cookie` if the Windows loader has not, otherwise the security cookie will be the default value set by the compiler [2]. If the `__security_init_cookie` function is not called there is still some entropy due to the XOR with the base pointer, however this is not optimal as most of the entropy is lost.
 
 > [!IMPORTANT]
 > You can apply the `__declspec(safebuffers)` keyword to the function's *declaration* to suppress the security checks provided by the `/GS`. This could be done if you determine the function does not contain a buffer overflow risk [10]. This could be done due to performance concerns.
@@ -227,7 +227,7 @@ This section shows the behavior of security cookies on a simple program with a b
 
     <img src="Images/SP3.png">
 
-6. Overflow the buffer into the security cookie. In my case it takes `21` characters to overflow the buffer. 
+6. Overflow the buffer into the security cookie. In my case it takes `21` characters to overflow the buffer.
 
     <img src="Images/SP4.png">
 
@@ -240,7 +240,7 @@ This section shows the behavior of security cookies on a simple program with a b
 ## Examining Security Cookies
 We will be examining the assembly used to add the security cookies to a function (not the security cookie functions themselves). This will be for functions in a 32-bit executable, if this were a function from a 64-bit executable then the epilog and prolog would be slightly different due to the difference in calling conventions between x86 and x86-64. You can use *Immunity Debugger* or Visual Studio (With a Breakpoint set running the debugger) to view the assembly. You can also configure Visual Studio to emit the asm source file.
 
-Look at function prolog: 
+Look at function prolog:
 ```s
 PUSH EBP
 MOV EBP,ESP
@@ -251,7 +251,7 @@ MOV DWORD PTR SS:[EBP-4],EAX
 ```
 The first three instructions `PUSH EBP`, `MOV ESP,EBP`, and `SUB EBP, ESP` are part of a normal function prolog in a x86 executable. The final three instructions are used to setup the *security cookie* on the stack. We first load the global security cookie with the `MOV EAX,DWORD PTR DS:[__security_cookie]` instruction; Remember this is a random value set by `__security_init_cookie` when the program begins. Next we XOR the `EBP` base pointer with the security cookie with the `XOR EAX,EBP` instruction. Finally we insert the *security cookie* onto the stack just before the current base pointer with the `MOV DWORD PTR SS:[EBP-4],EAX` instruction.
 
-Look at function epilog: 
+Look at function epilog:
 ```s
 MOV ECX,DWORD PTR SS:[EBP-4]
 XOR ECX,EBP
